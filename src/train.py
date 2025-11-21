@@ -7,12 +7,13 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.cuda.amp import autocast, GradScaler
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, roc_auc_score
-from typing import Tuple
+from typing import Tuple, Optional
 
 
-def train_one_epoch(model, dataloader, criterion, optimizer, device):
+def train_one_epoch(model, dataloader, criterion, optimizer, device, use_amp=False, scaler=None):
     """
     Train model for one epoch.
     
@@ -22,6 +23,8 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
         criterion: Loss function
         optimizer: Optimizer
         device: Device to run on
+        use_amp: Whether to use Automatic Mixed Precision (FP16)
+        scaler: GradScaler for mixed precision (required if use_amp=True)
     
     Returns:
         Tuple of (average_loss, accuracy, auc)
@@ -33,10 +36,22 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
         x, y = x.to(device), y.to(device)
 
         optimizer.zero_grad()
-        logits = model(x)
-        loss = criterion(logits, y)
-        loss.backward()
-        optimizer.step()
+        
+        if use_amp and scaler is not None:
+            # Mixed precision training
+            with autocast():
+                logits = model(x)
+                loss = criterion(logits, y)
+            
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            # Standard precision training
+            logits = model(x)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
 
         losses.append(loss.item())
         preds_all.extend(torch.softmax(logits, dim=1)[:, 1].detach().cpu().numpy())
@@ -94,6 +109,7 @@ def train_experiment(
     weight_decay: float = 1e-4,
     use_class_weights: bool = True,
     early_stopping_patience: int = 5,
+    use_amp: bool = False,
 ):
     """
     Full training experiment with early stopping based on validation AUC.
@@ -108,6 +124,7 @@ def train_experiment(
         weight_decay: L2 regularization strength
         use_class_weights: Whether to use class weights for imbalanced datasets
         early_stopping_patience: Number of epochs to wait before early stopping
+        use_amp: Whether to use Automatic Mixed Precision (FP16) for faster training
     
     Returns:
         Trained model with best weights loaded
@@ -116,6 +133,15 @@ def train_experiment(
         device = "cuda" if torch.cuda.is_available() else "cpu"
     
     model = model.to(device)
+    
+    # Setup mixed precision if requested and CUDA available
+    if use_amp and device == "cuda":
+        scaler = GradScaler()
+        print("  - Mixed Precision Training (FP16): enabled")
+    else:
+        scaler = None
+        if use_amp and device != "cuda":
+            print("  - Mixed Precision Training: disabled (requires CUDA)")
     
     # Compute class weights if requested
     if use_class_weights:
@@ -134,7 +160,10 @@ def train_experiment(
     patience_counter = 0
 
     for epoch in range(1, epochs + 1):
-        tr_loss, tr_acc, tr_auc = train_one_epoch(model, train_dl, criterion, optimizer, device)
+        tr_loss, tr_acc, tr_auc = train_one_epoch(
+            model, train_dl, criterion, optimizer, device, 
+            use_amp=use_amp, scaler=scaler
+        )
         val_loss, val_acc, val_auc = eval_one_epoch(model, val_dl, criterion, device)
 
         scheduler.step(val_loss)

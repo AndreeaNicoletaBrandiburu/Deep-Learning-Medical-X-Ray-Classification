@@ -12,6 +12,8 @@ This project demonstrates a complete deep learning pipeline for medical image cl
 
 - **Model Architectures**: ResNet-18 (CNN) and Vision Transformer (ViT)
 - **GPU Acceleration**: CUDA-optimized training and inference
+- **Mixed Precision Training**: FP16 support for faster training and reduced memory usage
+- **Performance Benchmarking**: Throughput, latency, and GPU memory profiling
 - **Explainability**: Grad-CAM visualization to identify model attention regions
 - **Model Compression**: Pruning and dynamic quantization for deployment optimization
 - **Medical Metrics**: ROC-AUC, accuracy, precision, recall, F1-score
@@ -139,6 +141,32 @@ pruned_model, quantized_model, comparison = compress_model_example(
 )
 ```
 
+### 7. Performance Benchmarking
+
+```python
+from src.benchmark import benchmark_model
+from src.data import get_dataloaders
+
+# Load model and data
+model = build_resnet18(num_classes=2, pretrained=False)
+model.load_state_dict(torch.load('best_resnet18_model.pth'))
+_, _, test_dl, _ = get_dataloaders('data/')
+
+# Benchmark model performance
+metrics = benchmark_model(
+    model=model,
+    dataloader=test_dl,
+    device='cuda',
+    use_amp=True,  # Benchmark with mixed precision
+    num_runs=100
+)
+```
+
+Or run the example script:
+```bash
+python example_benchmark.py
+```
+
 ## 📊 Results
 
 ### ResNet-18 Performance (Test Set)
@@ -199,7 +227,17 @@ The model was trained with the following regularization techniques to reduce ove
   - Class weights computed from training data distribution
 - **Early stopping**: Based on validation AUC (patience=5)
 - **Data augmentation**: Random horizontal flip, rotation (±15°), translation, color jitter
-- Mixed precision training support (optional)
+- **Mixed Precision Training (FP16)**: Enabled by default on GPU for faster training and reduced memory usage
+  - Uses PyTorch's `autocast` and `GradScaler` for automatic mixed precision
+  - Typically provides 1.5-2x speedup on modern GPUs with minimal accuracy loss
+
+### Performance Benchmarking
+
+- **Throughput**: Measures samples/images per second
+- **Latency**: Average, P50, P95, P99 percentiles
+- **GPU Memory**: Tracks allocated, reserved, and peak memory usage
+- **Comparison**: Compare FP32 vs FP16 performance
+- **Model Size**: Calculates model size in MB
 
 ### Compression
 

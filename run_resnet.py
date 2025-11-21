@@ -42,12 +42,13 @@ if __name__ == '__main__':
     total_params = sum(p.numel() for p in model.parameters())
     print(f"Total parameters: {total_params:,}")
     
-    # Train with improved regularization
+    # Train with improved regularization and mixed precision
     print("\nStarting training with regularization...")
     print("  - Dropout: 0.5")
     print("  - Weight decay: 1e-4")
     print("  - Class weights: enabled")
     print("  - Early stopping: patience=5")
+    print("  - Mixed Precision (FP16): enabled" if device == "cuda" else "  - Mixed Precision: disabled (CPU mode)")
     trained_model = train_experiment(
         model=model,
         train_dl=train_dl,
@@ -57,7 +58,8 @@ if __name__ == '__main__':
         device=device,
         weight_decay=1e-4,
         use_class_weights=True,
-        early_stopping_patience=5
+        early_stopping_patience=5,
+        use_amp=True  # Enable mixed precision training
     )
     
     # Save model
