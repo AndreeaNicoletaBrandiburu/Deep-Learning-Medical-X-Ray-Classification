@@ -141,12 +141,45 @@ pruned_model, quantized_model, comparison = compress_model_example(
 
 ## 📊 Results
 
-[Results will be documented here after training]
+### ResNet-18 Performance (Test Set)
 
-Example metrics:
-- **Accuracy**: ~95%
-- **ROC-AUC**: ~0.98
-- **F1-Score**: ~0.94
+After training with regularization techniques (dropout, class weights, early stopping), the model achieved the following performance:
+
+| Metric | Value |
+|--------|-------|
+| **Loss** | 0.3302 |
+| **Accuracy** | 92.95% |
+| **Precision** | 93.03% |
+| **Recall** | 95.90% |
+| **F1-Score** | 94.44% |
+| **ROC-AUC** | 97.51% |
+| **Optimal Threshold** | 0.8898 |
+
+### Confusion Matrix
+
+```
+                Predicted
+              Normal  Pneumonia
+Actual Normal   206       28
+      Pneumonia  16      374
+```
+
+**Interpretation:**
+- **True Positives (TP)**: 374 - Correctly identified pneumonia cases
+- **True Negatives (TN)**: 206 - Correctly identified normal cases
+- **False Positives (FP)**: 28 - Normal cases misclassified as pneumonia
+- **False Negatives (FN)**: 16 - Pneumonia cases missed
+
+### Training Improvements
+
+The model was trained with the following regularization techniques to reduce overfitting:
+- **Dropout** (0.5) in final classification layer
+- **Class weights** for imbalanced dataset handling
+- **Weight decay** (1e-4) for L2 regularization
+- **Early stopping** (patience=5) based on validation AUC
+- **Enhanced data augmentation** (rotation, translation, color jitter)
+
+**Result**: Reduced train-val accuracy gap from ~43% to ~5%, achieving better generalization.
 
 ## 🔬 Technical Details
 
@@ -157,10 +190,15 @@ Example metrics:
 
 ### Training
 
-- Optimizer: Adam with learning rate 1e-4
-- Scheduler: ReduceLROnPlateau (factor=0.5, patience=2)
-- Loss: CrossEntropyLoss
-- Early stopping based on validation AUC
+- **Optimizer**: Adam with learning rate 1e-4, weight decay 1e-4
+- **Scheduler**: ReduceLROnPlateau (factor=0.5, patience=2)
+- **Loss**: CrossEntropyLoss with class weights for imbalanced datasets
+- **Regularization**: 
+  - Dropout (0.5) in final classification layer
+  - L2 regularization via weight decay
+  - Class weights computed from training data distribution
+- **Early stopping**: Based on validation AUC (patience=5)
+- **Data augmentation**: Random horizontal flip, rotation (±15°), translation, color jitter
 - Mixed precision training support (optional)
 
 ### Compression
