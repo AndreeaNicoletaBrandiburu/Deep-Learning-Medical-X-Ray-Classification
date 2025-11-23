@@ -253,12 +253,6 @@ This project bridges my dual expertise:
 
 The use of human chest X-rays as a proxy allows for practical implementation while maintaining clinical relevance. The pipeline can be adapted for veterinary datasets when available, leveraging the same preprocessing, training, and evaluation framework.
 
-## 📝 CV Description
-
-**Multimodal Veterinary-Inspired Radiograph Classifier (PyTorch)**
-- Built a full deep learning pipeline for chest X-ray classification (public dataset used as a veterinary proxy): data loading, preprocessing, training, and evaluation (AUC, accuracy) on GPU.
-- Implemented and compared ResNet-18 and Vision Transformer models using PyTorch and timm; added Grad-CAM explainability to visualize model attention regions.
-- Experimented with model compression (pruning & dynamic quantization) to reduce model size and improve inference speed, documenting trade-offs between accuracy and latency.
 
 ## 🛠️ Technologies
 
@@ -269,9 +263,6 @@ The use of human chest X-rays as a proxy allows for practical implementation whi
 - **matplotlib**: Visualization
 - **numpy, pandas**: Data manipulation
 
-## 📄 License
-
-MIT License
 
 ## 👤 Author
 
